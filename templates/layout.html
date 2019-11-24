@@ -32,6 +32,18 @@
     </nav>
 
     <div class="container">
+      {% if app.session.flashbag.peek('error') %}
+        <div class="row" style="margin: 20px 0 -30px 0;">
+          {% for message in app.session.flashbag.get('error') %}
+          <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <strong>ERROR! </strong> {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
       <div class="row">
         {% block content %}{% endblock %}
       </div>
