@@ -1,55 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{% block title '' %} - Todos</title>
+    <title>{% block title '' %} - Todos</title>
 
     <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ app.request.basepath }}/css/main.css" rel="stylesheet" type="text/css" />
-  </head>
-  <body>
+    <link href="{{ app.request.basepath }}/css/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/"><span class="glyphicon glyphicon-home glyphicon-white"></span></a>
+            <a class="navbar-brand" href="/"><span class="glyphicon glyphicon-home glyphicon-white"></span></a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li><a href="/todo">Todo list</a></li>
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-            {% if user %}
-              <li><a href="/logout"><span class="glyphicon glyphicon-user"></span> {{ user.username }} Logout</a></li>
-            {% else %}
-              <li><a href="/login">Login</a></li>
-            {% endif %}
-          </ul>
+            <ul class="nav navbar-nav">
+                <li><a href="/todo">Todo list</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                {% if user %}
+                <li><a href="/logout"><span class="glyphicon glyphicon-user"></span> {{ user.username }} Logout</a></li>
+                {% else %}
+                <li><a href="/login">Login</a></li>
+                {% endif %}
+            </ul>
         </div>
-      </div>
-    </nav>
-
-    <div class="container">
-      {% if app.session.flashbag.peek('error') %}
-        <div class="row" style="margin: 20px 0 -30px 0;">
-          {% for message in app.session.flashbag.get('error') %}
-          <div class="alert alert-danger alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-            <strong>ERROR! </strong> {{ message }}
-          </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-      <div class="row">
-        {% block content %}{% endblock %}
-      </div>
     </div>
+</nav>
 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-  </body>
+<div class="container">
+    {% if app.session.flashbag.peek('message') %}
+    <div class="row" style="margin: 20px 0 -30px 0;">
+        {% for flashData in app.session.flashbag.get('message') %}
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <strong> {{ flashData.type }}! </strong> {{ flashData.info }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="row">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+</body>
 </html>
