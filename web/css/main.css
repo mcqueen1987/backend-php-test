@@ -5,3 +5,9 @@ body {
 .login-form > div {
     margin-top: 10px;
 }
+
+.todo-finished {
+    text-decoration: line-through;
+    font-style: italic;
+    color: #aaa;
+}
