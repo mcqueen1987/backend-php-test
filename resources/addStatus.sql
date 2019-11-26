@@ -1,0 +1,1 @@
+ALTER TABLE todos ADD COLUMN status tinyint(1) DEFAULT 0 COMMENT "0:default,1:finished" AFTER description;
