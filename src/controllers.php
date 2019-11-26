@@ -40,6 +40,20 @@ $app->get('/logout', function () use ($app) {
     return $app->redirect('/');
 });
 
+$app->get('/todo/{id}/json', function ($id) use ($app) {
+    if (null === $user = $app['session']->get('user')) {
+        return $app->redirect('/login');
+    }
+
+    // id should be int and start from 1
+    if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
+        $app->redirect("/todo");
+    }
+
+    $sql = "SELECT * FROM todos WHERE id = '$id'";
+    $todo = $app['db']->fetchAssoc($sql);
+    return $app->json($todo);
+});
 
 $app->get('/todo/{id}', function ($id) use ($app) {
     if (null === $user = $app['session']->get('user')) {
