@@ -1,5 +1,5 @@
 body {
-  padding-top: 50px;
+    padding-top: 50px;
 }
 
 .login-form > div {
@@ -10,4 +10,26 @@ body {
     text-decoration: line-through;
     font-style: italic;
     color: #aaa;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+}
+
+.pagination a {
+    color: black;
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    margin: 0 4px;
+}
+
+.pagination a.active {
+    background-color: #4caf50;
+    color: white;
+    border: 1px solid #4caf50;
+}
+
+.pagination a:hover:not(.active) {
+    background-color: #ddd;
 }

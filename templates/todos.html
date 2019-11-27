@@ -46,5 +46,24 @@
             </form>
         </tr>
     </table>
+    {% if totalPages >= 1 %}
+    <div class="pagination">
+        {% if currentPage > 1 %}
+        <a href="/todo?page={{ currentPage - 1 }}">&laquo;</a>
+        {% else %}
+        <a href="#">&laquo;</a>
+        {% endif %}
+
+        {% for i in range(1, totalPages) %}
+        <a href="/todo?page={{i}}" class="{{ i == currentPage ? 'active' : ''}}">{{i}}</a>
+        {% endfor %}
+
+        {% if currentPage < totalPages %}
+        <a href="/todo?page={{ currentPage + 1 }}">&raquo;</a>
+        {% else %}
+        <a href="#">&raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
