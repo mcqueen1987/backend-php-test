@@ -24,7 +24,7 @@ $app->match('/login', function (Request $request) use ($app) {
         $entityManager = $app['orm.em'];
         $user = $entityManager->getRepository('\Module\User')->findOneBy([
             'username' => $username,
-            'password' => $password
+            'password' => md5($password)
         ]);
         if (!empty($user)) {
             $app['session']->set('user', [
@@ -162,7 +162,7 @@ $app->post('/todo/add', function (Request $request) use ($app) {
     return $app->redirect('/todo');
 });
 
-$app->post('/todo/finish/{id}', function ($id) use ($app) {
+$app->post('/todo/{id}/finish', function ($id) use ($app) {
     if ($app['session']->get('user') === null) {
         return $app->redirect('/login');
     }
@@ -178,7 +178,7 @@ $app->post('/todo/finish/{id}', function ($id) use ($app) {
     return $app->redirect('/todo');
 });
 
-$app->match('/todo/delete/{id}', function ($id) use ($app) {
+$app->match('/todo/{id}/delete', function ($id) use ($app) {
     // id should be int and start from 1
     if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
         $app['session']->getFlashBag()->add('message', [
