@@ -1,14 +1,14 @@
 <?php
 
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+
+const MESSAGE_TYPE_SUCCESS = 'Success';
+const MESSAGE_TYPE_ERROR = 'Error';
 
 $app['twig'] = $app->share($app->extend('twig', function ($twig, $app) {
     $twig->addGlobal('user', $app['session']->get('user'));
-
     return $twig;
 }));
-
 
 $app->get('/', function () use ($app) {
     return $app['twig']->render('index.html', [
@@ -23,8 +23,8 @@ $app->match('/login', function (Request $request) use ($app) {
     if (!empty($username)) {
         $entityManager = $app['orm.em'];
         $user = $entityManager->getRepository('\Module\User')->findOneBy([
-            'username' => $username,
-            'password' => $password
+            'username' => pg_escape_string($username),
+            'password' => md5($password)
         ]);
         if (!empty($user)) {
             $app['session']->set('user', [
@@ -37,7 +37,6 @@ $app->match('/login', function (Request $request) use ($app) {
     }
     return $app['twig']->render('login.html', []);
 });
-
 
 $app->get('/logout', function () use ($app) {
     $app['session']->set('user', null);
@@ -52,7 +51,7 @@ $app->get('/todo/{id}/json', function ($id) use ($app) {
     // id should be int and start from 1
     if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
         $app['session']->getFlashBag()->add('message', [
-            'type' => $app['ERROR'],
+            'type' => MESSAGE_TYPE_ERROR,
             'info' => 'Id does not exists!'
         ]);
         return $app->redirect("/todo");
@@ -79,7 +78,7 @@ $app->get('/todo', function () use ($app) {
     $totalPages = ceil($totalTodos / $defaultPageSize);
     if ($currentPage > $totalPages) {
         $app['session']->getFlashBag()->add('message', [
-            'type' => $app['ERROR'],
+            'type' => MESSAGE_TYPE_ERROR,
             'info' => 'Page number is illegl!'
         ]);
         return $app->redirect('/todo');
@@ -109,8 +108,8 @@ $app->get('/todo/{id}', function ($id) use ($app) {
     // id should be int and start from 1
     if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
         $app['session']->getFlashBag()->add('message', [
-            'type' => $app['ERROR'],
-            'info' => 'Id does not exists!'
+            'type' => MESSAGE_TYPE_ERROR,
+            'info' => 'Id does not exist!'
         ]);
         return $app->redirect("/todo");
     }
@@ -121,8 +120,8 @@ $app->get('/todo/{id}', function ($id) use ($app) {
 
     if (empty($todo)) {
         $app['session']->getFlashBag()->add('message', [
-            'type' => $app['ERROR'],
-            'info' => 'Id does not exists!'
+            'type' => MESSAGE_TYPE_ERROR,
+            'info' => 'Id does not exist!'
         ]);
         return $app->redirect('/todo');
     }
@@ -141,7 +140,7 @@ $app->post('/todo/add', function (Request $request) use ($app) {
     $description = $request->get('description');
     if (empty($description)) {
         $app['session']->getFlashBag()->add('message', [
-            'type' => $app['ERROR'],
+            'type' => MESSAGE_TYPE_ERROR,
             'info' => 'Description is empty!'
         ]);
         return $app->redirect('/todo');
@@ -150,19 +149,20 @@ $app->post('/todo/add', function (Request $request) use ($app) {
     // save data
     $entityManager = $app['orm.em'];
     $todoObj = new \Module\Todo();
+    // escapes a string for querying the database
     $todoObj->setUserId($user['id'])
-        ->setDescription($description)
+        ->setDescription(pg_escape_string($description))
         ->setStatus(0);
     $entityManager->persist($todoObj);
     $entityManager->flush();
     $app['session']->getFlashBag()->add('message', [
-        'type' => $app['SUCCESS'],
-        'info' => 'Cool, Add todo successfully!'
+        'type' => MESSAGE_TYPE_SUCCESS,
+        'info' => 'Cool, add todo successfully!'
     ]);
     return $app->redirect('/todo');
 });
 
-$app->post('/todo/finish/{id}', function ($id) use ($app) {
+$app->post('/todo/{id}/finish', function ($id) use ($app) {
     if ($app['session']->get('user') === null) {
         return $app->redirect('/login');
     }
@@ -171,19 +171,15 @@ $app->post('/todo/finish/{id}', function ($id) use ($app) {
     $todoObj->setStatus(1);
     $entityManager->persist($todoObj);
     $entityManager->flush();
-    $app['session']->getFlashBag()->add('message', [
-        'type' => 'Succeed',
-        'info' => 'Update todo as finished successfully!'
-    ]);
     return $app->redirect('/todo');
 });
 
-$app->match('/todo/delete/{id}', function ($id) use ($app) {
+$app->match('/todo/{id}/delete', function ($id) use ($app) {
     // id should be int and start from 1
     if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
         $app['session']->getFlashBag()->add('message', [
-            'type' => $app['ERROR'],
-            'info' => 'Id does not exists!'
+            'type' => MESSAGE_TYPE_ERROR,
+            'info' => 'Id does not exist!'
         ]);
         return $app->redirect("/todo");
     }
@@ -194,7 +190,7 @@ $app->match('/todo/delete/{id}', function ($id) use ($app) {
     $entityManager->flush();
 
     $app['session']->getFlashBag()->add('message', [
-        'type' => $app['SUCCESS'],
+        'type' => MESSAGE_TYPE_SUCCESS,
         'info' => 'Delete todo successfully!'
     ]);
 

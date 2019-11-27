@@ -15,19 +15,19 @@
             <td class="{{ (todo.status == 1)?'todo-finished':'' }}">{{ todo.userId }}</td>
             <td>
                 <a class="{{ (todo.status == 1)?'todo-finished':'' }}"
-                   href="{{ app.request.baseurl }}/todo/{{ todo.id }}">
+                   href="/todo/{{ todo.id }}">
                     {{ todo.description }}
                 </a>
             </td>
             <td>
                 {% if todo.status != 1 %}
-                <form method="post" action="{{ app.request.baseurl }}/todo/finish/{{ todo.id }}">
+                <form method="post" action="/todo/{{ todo.id }}/finish">
                     <button type="submit" class="finish">finish</button>
                 </form>
                 {% endif %}
             </td>
             <td>
-                <form method="post" action="{{ app.request.baseurl }}/todo/delete/{{ todo.id }}">
+                <form method="post" action="/todo/{{ todo.id }}/delete">
                     <button type="submit" class="btn btn-xs btn-danger"><span
                             class="glyphicon glyphicon-remove glyphicon-white"></span></button>
                 </form>
@@ -35,9 +35,9 @@
         </tr>
         {% endfor %}
         <tr>
-            <form method="post" action="{{ app.request.baseurl }}/todo/add">
+            <form method="post" action="/todo/add">
                 <td colspan="3">
-                    <input type="textbox" name="description" class="small-6 small-center" placeholder="Description...">
+                    <input type="text" name="description" class="small-6 small-center" placeholder="Description...">
                 </td>
                 <td></td>
                 <td>
