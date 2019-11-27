@@ -12,7 +12,7 @@
         {% for todo in todos %}
         <tr>
             <td class="{{ (todo.status == 1)?'todo-finished':'' }}">{{ todo.id }}</td>
-            <td class="{{ (todo.status == 1)?'todo-finished':'' }}">{{ todo.user_id }}</td>
+            <td class="{{ (todo.status == 1)?'todo-finished':'' }}">{{ todo.userId }}</td>
             <td>
                 <a class="{{ (todo.status == 1)?'todo-finished':'' }}"
                    href="{{ app.request.baseurl }}/todo/{{ todo.id }}">
