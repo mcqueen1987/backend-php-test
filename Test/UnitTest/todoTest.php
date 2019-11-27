@@ -89,7 +89,7 @@ final class todoTest extends TestCase
         }
         $response = $this->client->request(
             'GET',
-            $this->baseUrl . '/todo/delete/' . $todoId,
+            $this->baseUrl . '/todo/' . $todoId . '/delete',
             ['cookies' => $this->cookieJar]
         );
         $page = $response->getBody()->getContents();
