@@ -55,29 +55,62 @@ $app->get('/todo/{id}/json', function ($id) use ($app) {
     return $app->json($todo);
 });
 
-$app->get('/todo/{id}', function ($id) use ($app) {
-    if (null === $user = $app['session']->get('user')) {
+$app->get('/todo', function () use ($app) {
+    $user = $app['session']->get('user');
+    if ($user === null) {
         return $app->redirect('/login');
     }
 
-    if ($id) {
-        $sql = "SELECT * FROM todos WHERE id = '$id'";
-        $todo = $app['db']->fetchAssoc($sql);
-
-        return $app['twig']->render('todo.html', [
-            'todo' => $todo,
+    // get total page
+    $defaultPageSize = 5;
+    $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
+    $sqlTotalPage = "SELECT count(*) as total FROM todos where user_id = '${user['id']}'";
+    $totalTodos = $app['db']->fetchAll($sqlTotalPage);
+    $totalPages = ceil($totalTodos[0]['total'] / $defaultPageSize);
+    if ($currentPage > $totalPages) {
+        $app['session']->getFlashBag()->add('message', [
+            'type' => $app['ERROR'],
+            'info' => 'Page number is illegl!'
         ]);
-    } else {
-        $sql = "SELECT * FROM todos WHERE user_id = '${user['id']}'";
-        $todos = $app['db']->fetchAll($sql);
-
-        return $app['twig']->render('todos.html', [
-            'todos' => $todos,
-        ]);
+        return $app->redirect('/todo');
     }
-})
-    ->value('id', null);
 
+    // get data
+    $offset = ($currentPage - 1) * $defaultPageSize;
+    $sql = "SELECT * FROM todos where user_id = '${user['id']}' limit " . $offset . "," . "$defaultPageSize";
+    $todos = $app['db']->fetchAll($sql);
+    return $app['twig']->render('todos.html', [
+        'todos' => $todos,
+        'currentPage' => $currentPage,
+        'totalPages' => $totalPages
+    ]);
+});
+
+$app->get('/todo/{id}', function ($id) use ($app) {
+    if ($app['session']->get('user') === null) {
+        return $app->redirect('/login');
+    }
+
+    // id should be int and start from 1
+    if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
+        return $app->redirect("/todo");
+    }
+
+    $sql = "SELECT * FROM todos WHERE id = '$id'";
+    $todo = $app['db']->fetchAssoc($sql);
+
+    if (empty($todo)) {
+        $app['session']->getFlashBag()->add('message', [
+            'type' => $app['ERROR'],
+            'info' => 'Id not exists!'
+        ]);
+        return $app->redirect('/todo');
+    }
+
+    return $app['twig']->render('todo.html', [
+        'todo' => $todo,
+    ]);
+});
 
 $app->post('/todo/add', function (Request $request) use ($app) {
     if (null === $user = $app['session']->get('user')) {
@@ -88,24 +121,17 @@ $app->post('/todo/add', function (Request $request) use ($app) {
     $description = $request->get('description');
 
     if (empty($description)) {
-        $app['session']->getFlashBag()->add(
-            'message',
-            [
-                'type' => $app['ERROR'],
-                'info' => 'Description is empty!'
-            ]
-        );
-        $app['session']->getFlashBag()->add('error', 'Description is empty!');
+        $app['session']->getFlashBag()->add('message', [
+            'type' => $app['ERROR'],
+            'info' => 'Description is empty!'
+        ]);
         return $app->redirect('/todo');
     }
 
-    $app['session']->getFlashBag()->add(
-        'message',
-        [
-            'type' => $app['SUCCESS'],
-            'info' => 'Cool, Add todo successfully!'
-        ]
-    );
+    $app['session']->getFlashBag()->add('message', [
+        'type' => $app['SUCCESS'],
+        'info' => 'Cool, Add todo successfully!'
+    ]);
 
     $sql = "INSERT INTO todos (user_id, description) VALUES ('$user_id', '$description')";
     $app['db']->executeUpdate($sql);
@@ -126,13 +152,10 @@ $app->match('/todo/delete/{id}', function ($id) use ($app) {
 
     $sql = "DELETE FROM todos WHERE id = '$id'";
     $app['db']->executeUpdate($sql);
-    $app['session']->getFlashBag()->add(
-        'message',
-        [
-            'type' => $app['SUCCESS'],
-            'info' => 'Delete todo successfully!'
-        ]
-    );
+    $app['session']->getFlashBag()->add('message', [
+        'type' => $app['SUCCESS'],
+        'info' => 'Delete todo successfully!'
+    ]);
 
     return $app->redirect('/todo');
 });
