@@ -16,22 +16,26 @@ $app->get('/', function () use ($app) {
     ]);
 });
 
-
 $app->match('/login', function (Request $request) use ($app) {
     $username = $request->get('username');
     $password = $request->get('password');
 
-    if ($username) {
-        $sql = "SELECT * FROM users WHERE username = '$username' and password = '$password'";
-        $user = $app['db']->fetchAssoc($sql);
-
-        if ($user) {
-            $app['session']->set('user', $user);
+    if (!empty($username)) {
+        $entityManager = $app['orm.em'];
+        $user = $entityManager->getRepository('\Module\User')->findOneBy([
+            'username' => $username,
+            'password' => $password
+        ]);
+        if (!empty($user)) {
+            $app['session']->set('user', [
+                'id' => $user->getId(),
+                'username' => $user->getUsername(),
+                'password' => $user->getPassword()
+            ]);
             return $app->redirect('/todo');
         }
     }
-
-    return $app['twig']->render('login.html', array());
+    return $app['twig']->render('login.html', []);
 });
 
 
@@ -47,11 +51,15 @@ $app->get('/todo/{id}/json', function ($id) use ($app) {
 
     // id should be int and start from 1
     if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
+        $app['session']->getFlashBag()->add('message', [
+            'type' => $app['ERROR'],
+            'info' => 'Id does not exists!'
+        ]);
         return $app->redirect("/todo");
     }
 
-    $sql = "SELECT * FROM todos WHERE id = '$id'";
-    $todo = $app['db']->fetchAssoc($sql);
+    $entityManager = $app['orm.em'];
+    $todo = $entityManager->getRepository('\Module\Todo')->find($id);
     return $app->json($todo);
 });
 
@@ -64,9 +72,11 @@ $app->get('/todo', function () use ($app) {
     // get total page
     $defaultPageSize = 5;
     $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
-    $sqlTotalPage = "SELECT count(*) as total FROM todos where user_id = '${user['id']}'";
-    $totalTodos = $app['db']->fetchAll($sqlTotalPage);
-    $totalPages = ceil($totalTodos[0]['total'] / $defaultPageSize);
+    $repository = $app['orm.em']->getRepository('\Module\Todo');
+    $totalTodos = count($repository->findBy([
+        'user_id' => $user['id']
+    ]));
+    $totalPages = ceil($totalTodos / $defaultPageSize);
     if ($currentPage > $totalPages) {
         $app['session']->getFlashBag()->add('message', [
             'type' => $app['ERROR'],
@@ -75,10 +85,15 @@ $app->get('/todo', function () use ($app) {
         return $app->redirect('/todo');
     }
 
-    // get data
+    // get todos
     $offset = ($currentPage - 1) * $defaultPageSize;
-    $sql = "SELECT * FROM todos where user_id = '${user['id']}' limit " . $offset . "," . "$defaultPageSize";
-    $todos = $app['db']->fetchAll($sql);
+    $todos = $repository->findBy(
+        ['user_id' => $user['id']],
+        ['id' => 'DESC'],
+        $defaultPageSize,
+        $offset
+    );
+
     return $app['twig']->render('todos.html', [
         'todos' => $todos,
         'currentPage' => $currentPage,
@@ -93,16 +108,21 @@ $app->get('/todo/{id}', function ($id) use ($app) {
 
     // id should be int and start from 1
     if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
+        $app['session']->getFlashBag()->add('message', [
+            'type' => $app['ERROR'],
+            'info' => 'Id does not exists!'
+        ]);
         return $app->redirect("/todo");
     }
 
-    $sql = "SELECT * FROM todos WHERE id = '$id'";
-    $todo = $app['db']->fetchAssoc($sql);
+    // get todoInfo
+    $repository = $app['orm.em']->getRepository('\Module\Todo');
+    $todo = $repository->find($id);
 
     if (empty($todo)) {
         $app['session']->getFlashBag()->add('message', [
             'type' => $app['ERROR'],
-            'info' => 'Id not exists!'
+            'info' => 'Id does not exists!'
         ]);
         return $app->redirect('/todo');
     }
@@ -113,13 +133,12 @@ $app->get('/todo/{id}', function ($id) use ($app) {
 });
 
 $app->post('/todo/add', function (Request $request) use ($app) {
-    if (null === $user = $app['session']->get('user')) {
+    $user = $app['session']->get('user');
+    if ($user === null) {
         return $app->redirect('/login');
     }
 
-    $user_id = $user['id'];
     $description = $request->get('description');
-
     if (empty($description)) {
         $app['session']->getFlashBag()->add('message', [
             'type' => $app['ERROR'],
@@ -128,14 +147,18 @@ $app->post('/todo/add', function (Request $request) use ($app) {
         return $app->redirect('/todo');
     }
 
+    // save data
+    $entityManager = $app['orm.em'];
+    $todoObj = new \Module\Todo();
+    $todoObj->setUserId($user['id'])
+        ->setDescription($description)
+        ->setStatus(0);
+    $entityManager->persist($todoObj);
+    $entityManager->flush();
     $app['session']->getFlashBag()->add('message', [
         'type' => $app['SUCCESS'],
         'info' => 'Cool, Add todo successfully!'
     ]);
-
-    $sql = "INSERT INTO todos (user_id, description) VALUES ('$user_id', '$description')";
-    $app['db']->executeUpdate($sql);
-
     return $app->redirect('/todo');
 });
 
@@ -143,15 +166,33 @@ $app->post('/todo/finish/{id}', function ($id) use ($app) {
     if ($app['session']->get('user') === null) {
         return $app->redirect('/login');
     }
-    $sql = "UPDATE todos SET status = 1 WHERE id = '$id'";
-    $app['db']->executeUpdate($sql);
+    $entityManager = $app['orm.em'];
+    $todoObj = $entityManager->find('\Module\Todo', $id);
+    $todoObj->setStatus(1);
+    $entityManager->persist($todoObj);
+    $entityManager->flush();
+    $app['session']->getFlashBag()->add('message', [
+        'type' => 'Succeed',
+        'info' => 'Update todo as finished successfully!'
+    ]);
     return $app->redirect('/todo');
 });
 
 $app->match('/todo/delete/{id}', function ($id) use ($app) {
+    // id should be int and start from 1
+    if (empty($id) || strval($id) !== strval(intval($id)) || $id < 1) {
+        $app['session']->getFlashBag()->add('message', [
+            'type' => $app['ERROR'],
+            'info' => 'Id does not exists!'
+        ]);
+        return $app->redirect("/todo");
+    }
 
-    $sql = "DELETE FROM todos WHERE id = '$id'";
-    $app['db']->executeUpdate($sql);
+    $entityManager = $app['orm.em'];
+    $todoObj = $entityManager->find('\Module\Todo', $id);
+    $entityManager->remove($todoObj);
+    $entityManager->flush();
+
     $app['session']->getFlashBag()->add('message', [
         'type' => $app['SUCCESS'],
         'info' => 'Delete todo successfully!'
