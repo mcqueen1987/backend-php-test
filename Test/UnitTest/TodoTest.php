@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 
-final class todoTest extends TestCase
+final class TodoTest extends TestCase
 {
     private $baseUrl = 'http://localhost:1337';
     private $testUsername = 'user1';
@@ -67,16 +67,17 @@ final class todoTest extends TestCase
      */
     public function testAddThenDeleteTodo()
     {
-        // test add
+        // add a new todo item
         $response = $this->client->request('POST', $this->baseUrl . '/todo/add', [
             'form_params' => [
                 'description' => 'description for test',
             ],
             'cookies' => $this->cookieJar
         ]);
+        // check whether todo item added successfully by flashBag message
         $page = $response->getBody()->getContents();
-        $this->assertStringContainsString("Cool, Add todo successfully!", $page);
-        // test delete
+        $this->assertStringContainsString("Cool, add todo successfully!", $page);
+        // get the newly added todo item Id from page by DOM
         $dom = new \DOMDocument();
         @$dom->loadHTML($page);
         // get todoId
@@ -87,6 +88,7 @@ final class todoTest extends TestCase
                 $todoId = str_replace('/todo/', '', $href);
             }
         }
+        // delete the newly added todo item by id
         $response = $this->client->request(
             'GET',
             $this->baseUrl . '/todo/' . $todoId . '/delete',
@@ -94,6 +96,7 @@ final class todoTest extends TestCase
         );
         $page = $response->getBody()->getContents();
         $this->assertEquals('200', $response->getStatusCode());
+        // check whether delete succeed
         $this->assertStringContainsString("Delete todo successfully!", $page);
     }
 }
